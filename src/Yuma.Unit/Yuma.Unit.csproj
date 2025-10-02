@@ -35,7 +35,11 @@
    </ItemGroup>
 
    <ItemGroup>
+      <PackageReference Include="AutoFixture"/>
+      <PackageReference Include="AutoFixture.Xunit2"/>
       <PackageReference Include="Microsoft.SourceLink.GitHub"/>
+      <PackageReference Include="MockQueryable.Moq"/>
+      <PackageReference Include="Moq"/>
    </ItemGroup>
 
 </Project>
