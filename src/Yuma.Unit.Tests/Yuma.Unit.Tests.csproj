@@ -17,8 +17,10 @@
       <PackageReference Include="AutoFixture.Xunit2"/>
       <PackageReference Include="coverlet.collector"/>
       <PackageReference Include="FluentAssertions"/>
+      <PackageReference Include="MicroElements.AutoFixture.NodaTime"/>
       <PackageReference Include="Microsoft.NET.Test.Sdk"/>
       <PackageReference Include="Moq"/>
+      <PackageReference Include="NodaTime"/>
       <PackageReference Include="xunit"/>
       <PackageReference Include="xunit.analyzers"/>
       <PackageReference Include="xunit.runner.visualstudio"/>
