@@ -1,0 +1,9 @@
+# to get config effectively used by GitVersion run: dotnet gitversion /showconfig
+# see https://gitversion.net/docs/reference/configuration for default config
+workflow: GitFlow/v1
+branches:
+   main:
+      is-release-branch: true # meaning non-tagged commits will look like 1.4.0-5 until tagged
+   feature:
+      mode: ContinuousDelivery
+      label: alpha.{BranchName}
