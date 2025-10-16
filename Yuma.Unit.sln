@@ -5,6 +5,11 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Definition.", ".Build Definition.", "{0D0F586E-803B-478B-A436-39DB4D68DEF3}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Pipelines.", ".Build Pipelines.", "{09C173E4-294E-475D-9024-3BB9A9227761}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Settings.", ".Build Settings.", "{AE33B1A7-3408-4602-827F-1C0C5CFB58FD}"
 	ProjectSection(SolutionItems) = preProject
 		coverlet.runsettings = coverlet.runsettings
