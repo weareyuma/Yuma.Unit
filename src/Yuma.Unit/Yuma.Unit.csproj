@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+   <PropertyGroup>
+      <AssemblyName>Yuma.Unit</AssemblyName>
+      <RootNamespace>Yuma</RootNamespace>
+      <Description>Yuma's Distributed Application Libraries: Unit Test Helper Classes and Methods.</Description>
+   </PropertyGroup>
+
+   <PropertyGroup>
+      <RepositoryType>git</RepositoryType>
+      <RepositoryUrl>https://github.com/weareyuma/Yuma.Unit</RepositoryUrl>
+      <PublishRepositoryUrl>true</PublishRepositoryUrl>
+      <EmbedUntrackedSources>true</EmbedUntrackedSources>
+   </PropertyGroup>
+
+   <PropertyGroup>
+      <GeneratePackageOnBuild Condition=" '$(GeneratePackageOnBuild)' == '' ">false</GeneratePackageOnBuild>
+      <IsPackable>true</IsPackable>
+      <PackageId>$(AssemblyName)</PackageId>
+      <PackageDescription>$(Description)</PackageDescription>
+      <PackageIcon>yuma-nuget.png</PackageIcon>
+      <PackageProjectUrl>$(RepositoryUrl)</PackageProjectUrl>
+      <PackageTags>yuma distributed application library unit test</PackageTags>
+      <IncludeSymbols>true</IncludeSymbols>
+      <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+   </PropertyGroup>
+
+   <ItemGroup>
+      <InternalsVisibleTo Include="$(AssemblyName).Tests"/>
+   </ItemGroup>
+
+   <!-- https://learn.microsoft.com/en-us/nuget/reference/msbuild-targets#packing-an-icon-image-file -->
+   <ItemGroup>
+      <None Include="..\..\yuma-nuget.png" Pack="true" Visible="false" PackagePath="\"/>
+   </ItemGroup>
+
+   <ItemGroup>
+      <PackageReference Include="Microsoft.SourceLink.GitHub"/>
+   </ItemGroup>
+
+</Project>
