@@ -7,7 +7,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Definition.", ".Buil
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Pipelines.", ".Build Pipelines.", "{09C173E4-294E-475D-9024-3BB9A9227761}"
 	ProjectSection(SolutionItems) = preProject
-		.github\workflows\ci.yml = .github\workflows\ci.yml
+		Continuous_Integration_Build.yml = .github\workflows\Continuous_Integration_Build.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Settings.", ".Build Settings.", "{AE33B1A7-3408-4602-827F-1C0C5CFB58FD}"
@@ -16,6 +16,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Settings.", ".Build 
 		Directory.Build.props = src\Directory.Build.props
 		Directory.Packages.props = src\Directory.Packages.props
 		GitVersion.yml = GitVersion.yml
+		global.json = global.json
 		GlobalSuppressions.Tests.cs = src\GlobalSuppressions.Tests.cs
 		NuGet.config = NuGet.config
 		stryker-config.json = stryker-config.json

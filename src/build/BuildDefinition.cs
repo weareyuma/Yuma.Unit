@@ -16,9 +16,7 @@
 
 #endregion
 
-using System;
 using JetBrains.Annotations;
-using Nuke.Common.CI.AzurePipelines;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
@@ -32,6 +30,16 @@ using static Serilog.Log;
 
 namespace build;
 
+[GitHubActions(
+	"Continuous Integration Build",
+	GitHubActionsImage.UbuntuLatest,
+	FetchDepth = 0,
+	OnPushBranchesIgnore = ["main", "feature/*"],
+	// OnPullRequestBranches = ["main"],
+	InvokedTargets = [nameof(CI)],
+	EnableGitHubToken = true,
+	PublishArtifacts = true,
+	ImportSecrets = [nameof(YumaReleaseFeedApiKey)])]
 [DotNetVerbosityMapping]
 file class BuildDefinition : NukeBuild
 {
@@ -81,7 +89,7 @@ file class BuildDefinition : NukeBuild
 	[NotNull]
 	Target UnitTest => td => td.Unlisted()
 		.DependsOn(Compile)
-		.Produces(ReportsDirectory / "*.html")
+		.Produces(TestCoverageReportsDirectory / "*.html")
 		.Executes(() => {
 			DotNetTest(s => s.EnableNoLogo()
 				.EnableNoBuild()
@@ -91,21 +99,21 @@ file class BuildDefinition : NukeBuild
 				.SetProjectFile(Solution)
 				.SetResultsDirectory(TestResultsDirectory)
 				.SetSettingsFile(RootDirectory / "coverlet.runsettings"));
-			ReportGeneratorTasks.ReportGenerator(s => s.SetTargetDirectory(ReportsDirectory)
+			ReportGeneratorTasks.ReportGenerator(s => s.SetTargetDirectory(TestCoverageReportsDirectory)
 				.AddReports(TestResultsDirectory / "**/coverage.cobertura.xml")
 				.AddReportTypes(ReportTypes.lcov, ReportTypes.HtmlInline_AzurePipelines_Dark)
 				.AddFileFilters("-*.g.cs"));
-			string link = ReportsDirectory / "index.html";
+			string link = TestCoverageReportsDirectory / "index.html";
 			Information($"Code coverage report: \e]8;;file://{link}\e\\{link}\e]8;;\e\\");
 		});
 
 	[NotNull]
 	Target MutationTest => td => td.Unlisted()
 		.DependsOn(UnitTest)
-		.Produces(ReportsDirectory / "mutation-report.html")
+		.Produces(TestMutationReportsDirectory / "mutation-report.html")
 		.Executes(() => {
 			DotNet(workingDirectory: RootDirectory, arguments: $"stryker --output {ArtifactsDirectory} --solution ./{Solution.FileName}");
-			string link = ReportsDirectory / "mutation-report.html";
+			string link = TestMutationReportsDirectory / "mutation-report.html";
 			Information($"Mutation test report: \e]8;;file://{link}\e\\{link}\e]8;;\e\\");
 		});
 
@@ -127,67 +135,53 @@ file class BuildDefinition : NukeBuild
 		});
 
 	[NotNull]
-	Target AzureFeedSetup => td => td.Unlisted()
+	Target PreviewFeedSetup => td => td.Unlisted()
 		.Description("Set PushApiUrl/PushApiKey for Azure Artifacts Feed when on feature branch.")
-		.OnlyWhenDynamic(() => IsFeatureBranch)
-		.Requires(() => AzureFeedApiKey)
-		.Requires(() => AzureFeedUrl)
+		.OnlyWhenStatic(() => GitRepository.IsOnFeatureBranch())
+		.Requires(() => YumaPreviewFeedUrl)
 		.Executes(() => {
-			PushApiKey = "AzureDevOps"; // Azure ignores API key
-			PushApiUrl = AzureFeedUrl;
+			YumaFeedApiKey = GitHubActions.Instance.Token;
+			YumaFeedUrl = YumaPreviewFeedUrl;
 		});
 
 	[NotNull]
-	Target NuGetFeedSetup => td => td.Unlisted()
+	Target ReleaseFeedSetup => td => td.Unlisted()
 		.Description("Set PushApiUrl/PushApiKey for nuget.org when on main branch.")
-		.OnlyWhenDynamic(() => IsMainBranch)
+		.OnlyWhenStatic(() => GitRepository.IsOnMainBranch())
 		.Requires(() => Configuration.Equals(Configuration.Release))
-		.Requires(() => NuGetApiKey)
-		.Requires(() => NuGetUrl)
+		.Requires(() => YumaReleaseFeedApiKey)
+		.Requires(() => YumaReleaseFeedUrl)
 		.Executes(() => {
-			PushApiKey = NuGetApiKey;
-			PushApiUrl = NuGetUrl;
+			YumaFeedApiKey = YumaReleaseFeedApiKey;
+			YumaFeedUrl = YumaReleaseFeedUrl;
 		});
 
 	[NotNull]
-	Target Push => td => td.DependsOn(MutationTest, Pack, AzureFeedSetup, NuGetFeedSetup)
-		.OnlyWhenDynamic(() => IsMainBranch || IsFeatureBranch)
+	Target Push => td => td.DependsOn(MutationTest, Pack, PreviewFeedSetup, ReleaseFeedSetup)
+		.OnlyWhenStatic(() => GitRepository.IsOnFeatureBranch())
 		.Consumes(Pack)
 		.Executes(() => {
-			PushApiKey.NotNullOrEmpty();
-			PushApiUrl.NotNullOrEmpty();
+			YumaFeedApiKey.NotNullOrEmpty();
+			YumaFeedUrl.NotNullOrEmpty();
 			NuGetPackagesDirectory.GlobFiles("*.nupkg")
 				.ForEach(path => {
 					Information($"Pushing NuGet package {path}");
 					DotNetNuGetPush(s => s.DisableSkipDuplicate()
-						.SetApiKey(PushApiKey)
-						.SetSource(PushApiUrl)
+						.SetApiKey(YumaFeedApiKey)
+						.SetSource(YumaFeedUrl)
 						.SetTargetPath(path));
 				});
 		});
 
-	[Required]
-	[NotNull]
-	string BranchName => GitRepository?.Branch ?? GitHubActions.Instance?.RefName ?? AzurePipelines.Instance?.SourceBranchName ?? string.Empty;
-
-	bool IsFeatureBranch => BranchName.StartsWith("feature/", StringComparison.OrdinalIgnoreCase);
-
-	bool IsMainBranch => BranchName.Equals("main", StringComparison.OrdinalIgnoreCase);
-
 	AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";
 
-	AbsolutePath NuGetPackagesDirectory => ArtifactsDirectory / "nuget";
+	AbsolutePath NuGetPackagesDirectory => ArtifactsDirectory / "nuget-packages";
 
-	AbsolutePath ReportsDirectory => ArtifactsDirectory / "reports";
+	AbsolutePath TestCoverageReportsDirectory => ArtifactsDirectory / "test-coverage-reports";
 
-	AbsolutePath TestResultsDirectory => ArtifactsDirectory / "tests";
+	AbsolutePath TestMutationReportsDirectory => ArtifactsDirectory / "reports";
 
-	[Parameter("Azure Artifacts Feed Personal Access Token (PAT).")]
-	[Secret]
-	readonly string AzureFeedApiKey;
-
-	[Parameter("Azure Artifacts Feed URL.")]
-	readonly string AzureFeedUrl;
+	AbsolutePath TestResultsDirectory => ArtifactsDirectory / "test-results";
 
 	[Parameter("Configuration to build: 'Debug' or 'Release'.")]
 	readonly Configuration Configuration = IsLocalBuild
@@ -202,17 +196,20 @@ file class BuildDefinition : NukeBuild
 	[GitVersion]
 	readonly GitVersion GitVersion = null!;
 
-	[Parameter("NuGet API key.")]
+	[Parameter("NuGet packages' preview feed URL.")]
+	readonly string YumaPreviewFeedUrl = "https://nuget.pkg.github.com/weareyuma/index.json";
+
+	[Parameter("NuGet packages' release feed API Key.")]
 	[Secret]
-	readonly string NuGetApiKey;
+	readonly string YumaReleaseFeedApiKey;
 
-	[Parameter("NuGet API URL.")]
-	readonly string NuGetUrl;
-
-	string PushApiUrl;
+	[Parameter("NuGet packages' release feed URL.")]
+	readonly string YumaReleaseFeedUrl = "https://api.nuget.org/v3/index.json";
 
 	[Secret]
-	string PushApiKey;
+	string YumaFeedApiKey;
+
+	string YumaFeedUrl;
 
 	[Required]
 	[Solution]
