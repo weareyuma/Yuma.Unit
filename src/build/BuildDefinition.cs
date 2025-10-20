@@ -173,7 +173,7 @@ file class BuildDefinition : NukeBuild
 			NuGetPackagesDirectory.GlobFiles("*.nupkg")
 				.ForEach(filepath => {
 					Information($"Pushing NuGet package {filepath}");
-					DotNetNuGetPush(s => s.DisableSkipDuplicate()
+					DotNetNuGetPush(s => s.SetSkipDuplicate(GitRepository.IsOnFeatureBranch())
 						.SetApiKey(YumaFeedApiKey)
 						.SetSource(YumaFeedUrl)
 						.SetTargetPath(filepath));
