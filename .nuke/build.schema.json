@@ -24,15 +24,15 @@
     "ExecutableTarget": {
       "type": "string",
       "enum": [
-        "AzureFeedSetup",
         "Build",
         "CI",
         "Clean",
         "Compile",
         "MutationTest",
-        "NuGetFeedSetup",
         "Pack",
+        "PreviewFeedSetup",
         "Push",
+        "ReleaseFeedSetup",
         "Restore",
         "UnitTest"
       ]
@@ -108,15 +108,6 @@
   "allOf": [
     {
       "properties": {
-        "AzureFeedApiKey": {
-          "type": "string",
-          "description": "Azure Artifacts Feed Personal Access Token (PAT)",
-          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
-        },
-        "AzureFeedUrl": {
-          "type": "string",
-          "description": "Azure Artifacts Feed URL"
-        },
         "Configuration": {
           "type": "string",
           "description": "Configuration to build: 'Debug' or 'Release'",
@@ -125,18 +116,22 @@
             "Release"
           ]
         },
-        "NuGetApiKey": {
-          "type": "string",
-          "description": "NuGet API key",
-          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
-        },
-        "NuGetUrl": {
-          "type": "string",
-          "description": "NuGet API URL"
-        },
         "Solution": {
           "type": "string",
           "description": "Path to a solution file that is automatically loaded"
+        },
+        "YumaPreviewFeedUrl": {
+          "type": "string",
+          "description": "NuGet packages' preview feed URL"
+        },
+        "YumaReleaseFeedApiKey": {
+          "type": "string",
+          "description": "NuGet packages' release feed API Key",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
+        "YumaReleaseFeedUrl": {
+          "type": "string",
+          "description": "NuGet packages' release feed URL"
         }
       }
     },
