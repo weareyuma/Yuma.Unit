@@ -5,8 +5,6 @@
       <TargetFramework>net9.0</TargetFramework>
       <OutputType>Exe</OutputType>
       <NoWarn>$(NoWarn);CS0169;CS0649;</NoWarn>
-      <!--<NukeRootDirectory>..\..</NukeRootDirectory>-->
-      <!--<NukeScriptDirectory>..\..</NukeScriptDirectory>-->
       <NukeTelemetryVersion>1</NukeTelemetryVersion>
       <IsPackable>false</IsPackable>
    </PropertyGroup>

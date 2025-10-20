@@ -1,6 +1,6 @@
 <!--
 
-  Copyright © 2024 - 2025 Yuma
+  Copyright © 2024-2025 Yuma
 
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@
 
    <PropertyGroup>
       <Company>Yuma</Company>
-      <Copyright>Copyright © 2024 - $([System.DateTime]::Now.Year) Yuma. All rights reserved.</Copyright>
+      <Copyright>Copyright © 2024-$([System.DateTime]::Now.Year) Yuma. All rights reserved.</Copyright>
       <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
       <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
       <Product Condition="'$(CI)' != 'true'">Yuma's Distributed Application Libraries (Local $(Configuration) Build)</Product>

@@ -24,6 +24,7 @@
     "ExecutableTarget": {
       "type": "string",
       "enum": [
+        "AuthenticateGitHubPackageSources",
         "Build",
         "CI",
         "Clean",
@@ -121,18 +122,23 @@
           "type": "string",
           "description": "Path to a solution file that is automatically loaded"
         },
+        "YumaPreviewFeedApiKey": {
+          "type": "string",
+          "description": "NuGet Packages preview feed API key — a GitHub Personal Access Token (PAT) with read:packages scope",
+          "default": "Secrets must be entered via 'nuke :secrets [profile]'"
+        },
         "YumaPreviewFeedUrl": {
           "type": "string",
-          "description": "NuGet packages' preview feed URL"
+          "description": "NuGet packages preview feed URL"
         },
         "YumaReleaseFeedApiKey": {
           "type": "string",
-          "description": "NuGet packages' release feed API Key",
+          "description": "NuGet Packages release feed API key — a NuGet.org API key used for publishing packages",
           "default": "Secrets must be entered via 'nuke :secrets [profile]'"
         },
         "YumaReleaseFeedUrl": {
           "type": "string",
-          "description": "NuGet packages' release feed URL"
+          "description": "NuGet packages release feed URL"
         }
       }
     },

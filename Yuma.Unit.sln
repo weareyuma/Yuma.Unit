@@ -5,19 +5,19 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Definition.", ".Build Definition.", "{0D0F586E-803B-478B-A436-39DB4D68DEF3}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Pipelines.", ".Build Pipelines.", "{09C173E4-294E-475D-9024-3BB9A9227761}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Workflows.", ".Build Workflows.", "{09C173E4-294E-475D-9024-3BB9A9227761}"
 	ProjectSection(SolutionItems) = preProject
-		Continuous_Integration_Build.yml = .github\workflows\Continuous_Integration_Build.yml
+		.github\workflows\ContinuousDelivery.yml = .github\workflows\ContinuousDelivery.yml
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Build Settings.", ".Build Settings.", "{AE33B1A7-3408-4602-827F-1C0C5CFB58FD}"
 	ProjectSection(SolutionItems) = preProject
 		coverlet.runsettings = coverlet.runsettings
-		Directory.Build.props = src\Directory.Build.props
-		Directory.Packages.props = src\Directory.Packages.props
+		src\Directory.Build.props = src\Directory.Build.props
+		src\Directory.Packages.props = src\Directory.Packages.props
 		GitVersion.yml = GitVersion.yml
 		global.json = global.json
-		GlobalSuppressions.Tests.cs = src\GlobalSuppressions.Tests.cs
+		src\GlobalSuppressions.Tests.cs = src\GlobalSuppressions.Tests.cs
 		NuGet.config = NuGet.config
 		stryker-config.json = stryker-config.json
 	EndProjectSection
@@ -26,11 +26,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".Solution Items.", ".Soluti
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
-		dotnet-tools.json = .config\dotnet-tools.json
+		.config\dotnet-tools.json = .config\dotnet-tools.json
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "build", "src\build\build.csproj", "{25368FF5-3597-441A-9CBD-83134C55AE91}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Build", "src\Build\Build.csproj", "{25368FF5-3597-441A-9CBD-83134C55AE91}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Yuma.Unit", "src\Yuma.Unit\Yuma.Unit.csproj", "{63999287-535A-42FB-AC47-D38F708F410E}"
 EndProject

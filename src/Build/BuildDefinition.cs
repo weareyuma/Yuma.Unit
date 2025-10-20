@@ -1,13 +1,13 @@
 #region Copyright & License
 
-// Copyright © 2024 - 2025 Yuma
-//
+// Copyright © 2024-2025 Yuma
+// 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
-//
+// 
 // http://www.apache.org/licenses/LICENSE-2.0
-//
+// 
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -16,10 +16,12 @@
 
 #endregion
 
+using System;
 using System.IO;
 using System.Linq;
 using System.Net.Mime;
 using JetBrains.Annotations;
+using NuGet.Configuration;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
@@ -34,10 +36,10 @@ using Octokit;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 using static Serilog.Log;
 
-namespace build;
+namespace Build;
 
 [GitHubActions(
-	"Continuous Integration Build",
+	"ContinuousDelivery",
 	GitHubActionsImage.UbuntuLatest,
 	FetchDepth = 0,
 	OnPushBranches = ["main", "feature/*"],
@@ -45,7 +47,7 @@ namespace build;
 	InvokedTargets = [nameof(CI)],
 	PublishArtifacts = true,
 	EnableGitHubToken = true,
-	ImportSecrets = [nameof(YumaReleaseFeedApiKey)],
+	ImportSecrets = [nameof(YumaReleaseFeedApiKey), nameof(YumaPreviewFeedApiKey)],
 	WritePermissions = [GitHubActionsPermissions.Contents, GitHubActionsPermissions.Packages])]
 [DotNetVerbosityMapping]
 file class BuildDefinition : NukeBuild
@@ -69,13 +71,28 @@ file class BuildDefinition : NukeBuild
 	});
 
 	[NotNull]
-	Target Restore => td => td.DependsOn(Clean)
+	Target AuthenticateGitHubPackageSources => td => td.Unlisted()
+		.OnlyWhenStatic(() => IsServerBuild)
+		.Requires(() => YumaPreviewFeedApiKey)
 		.Executes(() => {
-			DotNetRestore(s => s //.EnableNoCache()
-				.SetConfigFile(RootDirectory / "NuGet.config")
+			var userName = EnvironmentInfo.GetVariable("GITHUB_ACTOR") ?? Environment.UserName ?? "github-actions";
+			var settings = Settings.LoadSpecificSettings(RootDirectory, "NuGet.config");
+			new PackageSourceProvider(settings).LoadPackageSources()
+				.Where(ps => ps.Source.Contains("nuget.pkg.github.com", StringComparison.OrdinalIgnoreCase))
+				.ForEach(packageFeed => DotNetNuGetUpdateSource(s => s.SetConfigFile(RootDirectory / "NuGet.config")
+					.SetName(packageFeed.Name)
+					.SetSource(packageFeed.Source)
+					.SetUsername(userName)
+					.SetPassword(YumaPreviewFeedApiKey)
+					.SetStorePasswordInClearText(v: true)));
+		});
+
+	[NotNull]
+	Target Restore => td => td.DependsOn(Clean, AuthenticateGitHubPackageSources)
+		.Executes(() => {
+			DotNetRestore(s => s.SetConfigFile(RootDirectory / "NuGet.config")
 				.SetProjectFile(Solution));
-			DotNetToolRestore(s => s //.EnableNoCache()
-				.SetToolManifest(RootDirectory / ".config" / "dotnet-tools.json"));
+			DotNetToolRestore(s => s.SetToolManifest(RootDirectory / ".config" / "dotnet-tools.json"));
 		});
 
 	[NotNull]
@@ -100,7 +117,6 @@ file class BuildDefinition : NukeBuild
 		.Executes(() => {
 			DotNetTest(s => s.EnableNoLogo()
 				.EnableNoBuild()
-				// .EnableNoCache()
 				.EnableNoRestore()
 				.SetConfiguration(Configuration)
 				.SetProjectFile(Solution)
@@ -131,7 +147,6 @@ file class BuildDefinition : NukeBuild
 		.Executes(() => {
 			DotNetPack(s => s.EnableNoLogo()
 				.EnableNoBuild()
-				// .EnableNoCache()
 				.EnableNoRestore()
 				.EnableContinuousIntegrationBuild()
 				.SetConfiguration(Configuration)
@@ -143,7 +158,7 @@ file class BuildDefinition : NukeBuild
 
 	[NotNull]
 	Target PreviewFeedSetup => td => td.Unlisted()
-		.Description("Set PushApiUrl/PushApiKey for Azure Artifacts Feed when on feature branch.")
+		.Description("Set PushApiUrl/PushApiKey for preview NuGet package feed when on feature branch.")
 		.OnlyWhenStatic(() => GitRepository.IsOnFeatureBranch())
 		.Requires(() => YumaPreviewFeedUrl)
 		.Executes(() => {
@@ -153,7 +168,7 @@ file class BuildDefinition : NukeBuild
 
 	[NotNull]
 	Target ReleaseFeedSetup => td => td.Unlisted()
-		.Description("Set PushApiUrl/PushApiKey for nuget.org when on main branch.")
+		.Description("Set PushApiUrl/PushApiKey for release NuGet package feed when on feature branch.")
 		.OnlyWhenStatic(() => GitRepository.IsOnMainBranch())
 		.Requires(() => Configuration.Equals(Configuration.Release))
 		.Requires(() => YumaReleaseFeedApiKey)
@@ -229,14 +244,18 @@ file class BuildDefinition : NukeBuild
 	[GitVersion]
 	readonly GitVersion GitVersion = null!;
 
-	[Parameter("NuGet packages' preview feed URL.")]
+	[Parameter("NuGet Packages preview feed API key — a GitHub Personal Access Token (PAT) with read:packages scope.")]
+	[Secret]
+	readonly string YumaPreviewFeedApiKey;
+
+	[Parameter("NuGet packages preview feed URL.")]
 	readonly string YumaPreviewFeedUrl = "https://nuget.pkg.github.com/weareyuma/index.json";
 
-	[Parameter("NuGet packages' release feed API Key.")]
+	[Parameter("NuGet Packages release feed API key — a NuGet.org API key used for publishing packages.")]
 	[Secret]
 	readonly string YumaReleaseFeedApiKey;
 
-	[Parameter("NuGet packages' release feed URL.")]
+	[Parameter("NuGet packages release feed URL.")]
 	readonly string YumaReleaseFeedUrl = "https://api.nuget.org/v3/index.json";
 
 	[Secret]
