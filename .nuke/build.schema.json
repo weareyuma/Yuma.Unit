@@ -28,6 +28,7 @@
         "CI",
         "Clean",
         "Compile",
+        "CreateGitHubRelease",
         "MutationTest",
         "Pack",
         "PreviewFeedSetup",

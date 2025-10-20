@@ -16,15 +16,21 @@
 
 #endregion
 
+using System.IO;
+using System.Linq;
+using System.Net.Mime;
 using JetBrains.Annotations;
 using Nuke.Common.CI.GitHubActions;
 using Nuke.Common.Git;
 using Nuke.Common.IO;
 using Nuke.Common.ProjectModel;
 using Nuke.Common.Tools.DotNet;
+using Nuke.Common.Tools.GitHub;
 using Nuke.Common.Tools.GitVersion;
 using Nuke.Common.Tools.ReportGenerator;
+using Nuke.Common.Utilities;
 using Nuke.Common.Utilities.Collections;
+using Octokit;
 using static Nuke.Common.Tools.DotNet.DotNetTasks;
 using static Serilog.Log;
 
@@ -40,8 +46,7 @@ namespace build;
 	PublishArtifacts = true,
 	EnableGitHubToken = true,
 	ImportSecrets = [nameof(YumaReleaseFeedApiKey)],
-	ReadPermissions = [GitHubActionsPermissions.Contents],
-	WritePermissions = [GitHubActionsPermissions.Packages])]
+	WritePermissions = [GitHubActionsPermissions.Contents, GitHubActionsPermissions.Packages])]
 [DotNetVerbosityMapping]
 file class BuildDefinition : NukeBuild
 {
@@ -51,7 +56,7 @@ file class BuildDefinition : NukeBuild
 	Target Build => td => td.DependsOn(MutationTest);
 
 	[NotNull]
-	Target CI => td => td.DependsOn(Push)
+	Target CI => td => td.DependsOn(Push, CreateGitHubRelease)
 		.OnlyWhenStatic(() => IsServerBuild);
 
 	[NotNull]
@@ -160,19 +165,45 @@ file class BuildDefinition : NukeBuild
 
 	[NotNull]
 	Target Push => td => td.DependsOn(MutationTest, Pack, PreviewFeedSetup, ReleaseFeedSetup)
-		.OnlyWhenStatic(() => GitRepository.IsOnFeatureBranch())
+		.OnlyWhenStatic(() => GitRepository.IsOnMainBranch() || GitRepository.IsOnFeatureBranch())
 		.Consumes(Pack)
 		.Executes(() => {
 			YumaFeedApiKey.NotNullOrEmpty();
 			YumaFeedUrl.NotNullOrEmpty();
 			NuGetPackagesDirectory.GlobFiles("*.nupkg")
-				.ForEach(path => {
-					Information($"Pushing NuGet package {path}");
+				.ForEach(filepath => {
+					Information($"Pushing NuGet package {filepath}");
 					DotNetNuGetPush(s => s.DisableSkipDuplicate()
 						.SetApiKey(YumaFeedApiKey)
 						.SetSource(YumaFeedUrl)
-						.SetTargetPath(path));
+						.SetTargetPath(filepath));
 				});
+		});
+
+	[NotNull]
+	Target CreateGitHubRelease => td => td.DependsOn(Push)
+		.OnlyWhenStatic(() => GitRepository.IsOnMainBranch() || GitRepository.IsOnFeatureBranch())
+		.Executes(async () => {
+			GitHubTasks.GitHubClient.Credentials = new Credentials(GitHubActions.Instance.Token);
+			var release = await GitHubTasks.GitHubClient.Repository.Release.Create(
+				GitRepository.GetGitHubOwner(),
+				GitRepository.GetGitHubName(),
+				new NewRelease($"v{GitVersion.SemVer}") {
+					Name = GitVersion.SemVer,
+					Prerelease = GitRepository.IsOnFeatureBranch(),
+					Draft = false
+				});
+			NuGetPackagesDirectory.GlobFiles("*.nupkg", "*.?nupkg")
+				.Select(async filepath => {
+					await using var assetStream = File.OpenRead(filepath);
+					var asset = new ReleaseAssetUpload {
+						FileName = filepath.Name,
+						ContentType = MediaTypeNames.Application.Octet,
+						RawData = assetStream
+					};
+					await GitHubTasks.GitHubClient.Repository.Release.UploadAsset(release, asset);
+				})
+				.WaitAll();
 		});
 
 	AbsolutePath ArtifactsDirectory => RootDirectory / "artifacts";

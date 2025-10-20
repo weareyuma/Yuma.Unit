@@ -23,8 +23,8 @@ on:
       - 'feature/*'
 
 permissions:
+  contents: write
   packages: write
-  contents: read
 
 jobs:
   ubuntu-latest:
